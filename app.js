@@ -1,22 +1,28 @@
 //jshint esversion:6
+import 'dotenv/config';
 import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
+import encrypt from 'mongoose-encryption';
 
 const app = express();
-const port = 3000;
+
+const secret = process.env.SECRET;
 
 app.use(express.static("public"))
 app.use(bodyParser.urlencoded({extended:false}));
 
 mongoose.connect("mongodb://127.0.0.1:27017/userDB");
 
-const userSchema = {
+const userSchema = new mongoose.Schema({
     email:String,
     password:String
-}
+});
+
+userSchema.plugin(encrypt,{secret:secret,encryptedFields:["password"]})
 
 const User = new mongoose.model("User",userSchema);
+
 
 app.get("/",(req,res)=>{
     res.render("home.ejs")
@@ -54,6 +60,6 @@ app.post("/login",async(req,res)=>{
     }
 })
 
-app.listen(port, (req,res)=>{
-    console.log(`port is running on ${port}`);
+app.listen(process.env.PORT, (req,res)=>{
+    console.log(`port is running on ${process.env.PORT}`);
 })

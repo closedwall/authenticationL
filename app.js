@@ -3,7 +3,10 @@ import 'dotenv/config';
 import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
-import md5 from "md5";
+import bcrypt from 'bcrypt';
+
+
+const saltRounds = 10;
 
 const app = express();
 
@@ -32,26 +35,31 @@ app.get("/login",(req,res)=>{
 })
 
 app.post("/register",(req,res)=>{
-    const userdata = new User({
-        email:req.body.username,
-        password:md5(req.body.password)
-    });
-    userdata.save().then(val=>{
-        res.render("secrets.ejs");
-    })
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        console.log(hash);
+        const userdata = new User({
+            email:req.body.username,
+            password:hash
+        });
+        userdata.save().then(val=>{
+            res.render("secrets.ejs");
+        });
+    });    
+    
 });
 
 app.post("/login",async(req,res)=>{
     const email = req.body.username
-    const password = md5(req.body.password);
+    const password = req.body.password;
     const founduser = await User.findOne({ email: email}).exec();
-    console.log(founduser);
     if(founduser){
-        if(founduser.password===password){
-            res.render("secrets.ejs");
-        }else{
-            res.json({message:"wrong credential"})
-        }
+        bcrypt.compare(password, founduser.password, function(err, result) {
+            if(result==true){
+                res.render("secrets.ejs");
+            }else{
+                res.json({message:"wrong credential"})
+            }
+        });
     }else{
         console.log("not found");
     }
